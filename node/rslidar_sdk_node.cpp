@@ -40,6 +40,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ros/package.h>
 #elif ROS2_FOUND
 #include <rclcpp/rclcpp.hpp>
+#include "ament_index_cpp/get_package_share_directory.hpp"
 #endif
 
 using namespace robosense::lidar;
@@ -66,8 +67,8 @@ int main(int argc, char** argv)
 
   RS_TITLE << "********************************************************" << RS_REND;
   RS_TITLE << "**********                                    **********" << RS_REND;
-  RS_TITLE << "**********    RSLidar_SDK Version: v" << RSLIDAR_VERSION_MAJOR 
-    << "." << RSLIDAR_VERSION_MINOR 
+  RS_TITLE << "**********    RSLidar_SDK Version: v" << RSLIDAR_VERSION_MAJOR
+    << "." << RSLIDAR_VERSION_MINOR
     << "." << RSLIDAR_VERSION_PATCH << "     **********" << RS_REND;
   RS_TITLE << "**********                                    **********" << RS_REND;
   RS_TITLE << "********************************************************" << RS_REND;
@@ -82,11 +83,31 @@ int main(int argc, char** argv)
 
 #ifdef RUN_IN_ROS_WORKSPACE
    config_path = ros::package::getPath("rslidar_sdk");
+   config_path += "/config/config.yaml";
+#elif ROS2_FOUND
+   config_path = ament_index_cpp::get_package_share_directory("rslidar_sdk");
+   config_path += "/config/config.yaml";
+  // Parse command-line arguments for --ext_config
+  for (int i = 1; i < argc; ++i)
+  {
+    if (std::string(argv[i]) == "--ext_config" && i + 1 < argc)
+    {
+      std::string ext_config = argv[++i];
+      if (!ext_config.empty())
+      {
+        config_path = ext_config;
+        RS_INFO << "External Config available! " << RS_REND;
+      }
+    }
+  }
+
 #else
    config_path = (std::string)PROJECT_PATH;
+   config_path += "/config/config.yaml";
 #endif
 
-   config_path += "/config/config.yaml";
+   RS_INFO << "------------------------------------------------------" << RS_REND;
+   RS_INFO << "Config Path: " << config_path << RS_REND;
 
 #ifdef ROS_FOUND
   ros::NodeHandle priv_hh("~");
@@ -105,7 +126,7 @@ int main(int argc, char** argv)
   }
   catch (...)
   {
-    RS_ERROR << "The format of config file " << config_path 
+    RS_ERROR << "The format of config file " << config_path
       << " is wrong. Please check (e.g. indentation)." << RS_REND;
     return -1;
   }
